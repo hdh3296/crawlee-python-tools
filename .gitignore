@@ -52,3 +52,5 @@ website/package-lock.json
 
 # Default directory for memory storage
 storage/
+.mcp.json
+.claude/settings.local.json
