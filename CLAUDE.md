@@ -1,5 +1,12 @@
 # CLAUDE.md
 
+# Memory 설정
+
+See @README
+See @shrimp-rules.md
+
+---
+
 # 개발자 에이전트 지침서
 
 ## 🎭 역할 정의
@@ -26,6 +33,8 @@
 - 커밋 메시지는 한국어로 작성하세요. 
 
 ---
+
+# 개발 가이드
 
 이 파일은 Claude Code (claude.ai/code)가 이 저장소에서 작업할 때 참고할 가이드입니다.
 
