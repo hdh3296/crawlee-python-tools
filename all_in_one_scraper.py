@@ -24,6 +24,13 @@ def clean_text(text: str) -> str:
     """텍스트 정리"""
     if not text:
         return ""
+    
+    # 보이지 않는 특수문자 제거
+    text = re.sub(r'[\u200B-\u200F\uFEFF\u2060\u00AD]', '', text)  # Zero width characters, BOM, soft hyphen
+    text = re.sub(r'[\u0000-\u001F\u007F-\u009F]', '', text)  # Control characters
+    text = re.sub(r'[\uE000-\uF8FF]', '', text)  # Private Use Area
+    text = re.sub(r'[\uFFF0-\uFFFF]', '', text)  # Specials block
+    
     text = text.replace('\t', ' ')
     text = re.sub(r' +', ' ', text)  # 다중 공백을 단일로
     return text.strip()
@@ -112,6 +119,29 @@ async def scrape_webpage_direct(url: str) -> dict:
     return scraped_data
 
 
+def process_inline_elements(element):
+    """문단 내 인라인 요소들을 마크다운으로 변환"""
+    result = ""
+    
+    for child in element.children:
+        if isinstance(child, NavigableString):
+            result += clean_text(str(child))
+        elif isinstance(child, Tag):
+            tag_name = child.name.lower()
+            text = clean_text(child.get_text())
+            
+            if tag_name in ['strong', 'b']:
+                result += f"**{text}**"
+            elif tag_name in ['em', 'i']:
+                result += f"*{text}*"
+            elif tag_name == 'code':
+                result += f"`{text}`"
+            else:
+                result += text
+    
+    return clean_text(result)
+
+
 def extract_all_text_content(element):
     """요소에서 모든 텍스트 콘텐츠를 순차적으로 추출"""
     content_items = []
@@ -179,13 +209,33 @@ def extract_all_text_content(element):
                     })
                 return
             
-            # 문단 처리
-            elif tag_name == 'p':
+            # Strong/Bold 텍스트 처리
+            elif tag_name in ['strong', 'b']:
                 text = clean_text(elem.get_text())
                 if text and len(text) > 1:
                     content_items.append({
-                        'type': 'paragraph',
+                        'type': 'bold',
                         'content': text
+                    })
+                return
+            
+            # Emphasis/Italic 텍스트 처리
+            elif tag_name in ['em', 'i']:
+                text = clean_text(elem.get_text())
+                if text and len(text) > 1:
+                    content_items.append({
+                        'type': 'italic',
+                        'content': text
+                    })
+                return
+            
+            # 문단 처리 (인라인 마크다운 지원)
+            elif tag_name == 'p':
+                markdown_text = process_inline_elements(elem)
+                if markdown_text and len(markdown_text) > 1:
+                    content_items.append({
+                        'type': 'paragraph',
+                        'content': markdown_text
                     })
                 return
             
@@ -320,6 +370,18 @@ def convert_to_markdown(scraped_data: dict) -> str:
                     markdown_lines.append(row_text)
             
             markdown_lines.append("")
+        
+        elif item_type == 'bold':
+            markdown_lines.extend([
+                f"**{item['content']}**",
+                ""
+            ])
+        
+        elif item_type == 'italic':
+            markdown_lines.extend([
+                f"*{item['content']}*",
+                ""
+            ])
         
         elif item_type == 'list':
             items = item['content']
