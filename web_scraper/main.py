@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 from .scraper import WebScraper
 from .converter import MarkdownConverter
-from .utils import generate_filename
+from .utils import generate_output_paths
 
 
 async def main():
@@ -51,20 +51,28 @@ async def main():
         print("✅ 마크다운 변환 완료")
         
         # 3단계: 파일 저장
-        filename = generate_filename(url)
-        output_path = Path(filename)
+        folder_path, markdown_path, json_path = generate_output_paths(url)
         
-        with open(output_path, 'w', encoding='utf-8') as f:
+        # 마크다운 파일 저장
+        with open(markdown_path, 'w', encoding='utf-8') as f:
             f.write(markdown_content)
         
-        file_size = output_path.stat().st_size
+        # JSON 파일 저장
+        import json
+        with open(json_path, 'w', encoding='utf-8') as f:
+            json.dump(scraped_data, f, ensure_ascii=False, indent=2)
+        
+        # 파일 정보 수집
+        md_size = Path(markdown_path).stat().st_size
+        json_size = Path(json_path).stat().st_size
         line_count = len(markdown_content.split('\n'))
         
         print("=" * 60)
         print("🎉 변환 완료!")
-        print(f"📁 출력 파일: {filename}")
+        print(f"📁 출력 폴더: {folder_path}")
+        print(f"📄 마크다운: {Path(markdown_path).name} ({md_size:,} bytes)")
+        print(f"📋 JSON 데이터: {Path(json_path).name} ({json_size:,} bytes)")
         print(f"📊 줄 수: {line_count:,}")
-        print(f"📏 크기: {file_size:,} bytes")
         print(f"🔗 원본 URL: {url}")
         print("=" * 60)
         

@@ -44,16 +44,19 @@ def clean_code_text(text: str) -> str:
     return text.strip()
 
 
-def generate_filename(url: str, suffix: str = "_guide.md") -> str:
-    """URL을 기반으로 파일명 생성
+def generate_output_paths(url: str, suffix: str = "_guide") -> tuple[str, str, str]:
+    """URL을 기반으로 출력 폴더와 파일 경로들 생성
     
     Args:
         url: 원본 URL
-        suffix: 파일명 접미사 (기본값: "_guide.md")
+        suffix: 파일명 접미사 (기본값: "_guide")
         
     Returns:
-        생성된 파일명
+        (폴더경로, 마크다운경로, JSON경로) 튜플
     """
+    from datetime import datetime
+    from pathlib import Path
+    
     parsed = urllib.parse.urlparse(url)
     domain = parsed.netloc.replace('www.', '')
     
@@ -67,4 +70,18 @@ def generate_filename(url: str, suffix: str = "_guide.md") -> str:
         if path_part and len(path_part) < 20:
             clean_domain += f"_{path_part}"
     
-    return f"{clean_domain}{suffix}"
+    # 날짜/시간 추가
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+    base_name = f"{clean_domain}{suffix}_{timestamp}"
+    
+    # 폴더 구조 생성
+    output_dir = Path("outputs")
+    output_dir.mkdir(exist_ok=True)
+    
+    folder_path = output_dir / base_name
+    folder_path.mkdir(exist_ok=True)
+    
+    markdown_path = folder_path / f"{base_name}.md"
+    json_path = folder_path / f"{base_name}.json"
+    
+    return str(folder_path), str(markdown_path), str(json_path)
